@@ -25,7 +25,7 @@ repositories {
 
 apply plugin: 'maven'
 
-group='com.edison.transformnote'
+group='com.edison.ohgenius'
 version='1.0.0'
 
 def localRepoURL = 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath

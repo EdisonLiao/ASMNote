@@ -31,5 +31,18 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation 'com.android.tools.build:gradle-api:3.1.4'
-
 }
+
+buildscript {
+    repositories {
+        jcenter()
+        google()
+        mavenLocal()
+    }
+    dependencies {
+        classpath 'com.edison.ohgenius:ohgenius:1.0.0'
+    }
+}
+
+apply plugin: 'ohgenius-plugin'
+
