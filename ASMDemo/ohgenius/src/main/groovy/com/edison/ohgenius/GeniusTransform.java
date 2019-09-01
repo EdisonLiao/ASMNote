@@ -58,6 +58,6 @@ public class GeniusTransform extends Transform {
      */
     @Override
     public boolean isIncremental() {
-        return true;
+        return false;
     }
 }
