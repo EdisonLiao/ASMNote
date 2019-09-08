@@ -17,8 +17,14 @@ import com.google.common.io.Files;
 
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLClassLoader;
 import java.util.Collection;
@@ -33,10 +39,12 @@ public class GeniusTransform extends Transform {
 
     private Project mProject;
     private WaitableExecutor waitableExecutor;
+    private final Logger logger;
 
 
     public GeniusTransform(Project project){
         mProject = project;
+        this.logger = project.getLogger();
         this.waitableExecutor = WaitableExecutor.useGlobalSharedThreadPool();
     }
 
@@ -69,6 +77,7 @@ public class GeniusTransform extends Transform {
         TransformOutputProvider outputProvider = transformInvocation.getOutputProvider();
         Collection<TransformInput> inputs = transformInvocation.getInputs();
         boolean isIncremental = transformInvocation.isIncremental();
+        logger.error("GeniusTransform---intotransform");
         if(!isIncremental) {
             outputProvider.deleteAll();
         }
@@ -86,6 +95,7 @@ public class GeniusTransform extends Transform {
                             break;
                         case ADDED:
                         case CHANGED:
+                            logger.error("GeniusTransform---changeJar:"+jarInput.getFile().getAbsolutePath());
                             transformJar(jarInput.getFile(), dest, status);
                             break;
                         case REMOVED:
@@ -127,6 +137,13 @@ public class GeniusTransform extends Transform {
                             case CHANGED:
                                 try {
                                     FileUtils.touch(destFile);
+                                    logger.error("GeniusTransform--before_contain");
+                                    if (destFilePath.contains("MainActivity")){
+                                        logger.error("GeniusTransform--is_contain");
+                                        weave(inputFile,destFile);
+                                    }else {
+                                        FileUtils.copyFile(directoryInput.getFile(), dest);
+                                    }
                                 } catch (IOException e) {
                                     //maybe mkdirs fail for some strange reason, try again.
                                     Files.createParentDirs(destFile);
@@ -135,6 +152,7 @@ public class GeniusTransform extends Transform {
                         }
                     }
                 } else {
+                    logger.error("GeniusTransform--transformDir");
                     transformDir(directoryInput.getFile(), dest);
                 }
 
@@ -145,7 +163,26 @@ public class GeniusTransform extends Transform {
     }
 
     private void transformDir(final File inputDir, final File outputDir) throws IOException {
-        FileUtils.copyDirectory(inputDir, outputDir);
+        final String inputDirPath = inputDir.getAbsolutePath();
+        final String outputDirPath = outputDir.getAbsolutePath();
+
+        if (inputDir.isDirectory()) {
+            for (final File file : com.android.utils.FileUtils.getAllFiles(inputDir)) {
+                waitableExecutor.execute(() -> {
+                    String filePath = file.getAbsolutePath();
+                    if (filePath.contains("MainActivity")){
+                        logger.error("GeniusTransform--MainActivity:"+filePath);
+                        File outputFile = new File(filePath.replace(inputDirPath, outputDirPath));
+                        logger.error("GeniusTransform--MainActivityOUT:"+outputFile.getAbsolutePath());
+                        FileUtils.touch(outputFile);
+                        weave(file,outputFile);
+                    }else {
+                        FileUtils.copyFile(inputDir,outputDir);
+                    }
+                    return null;
+                });
+            }
+        }
     }
 
     private void transformJar(final File srcJar, final File destJar, Status status) {
@@ -153,6 +190,24 @@ public class GeniusTransform extends Transform {
             FileUtils.copyFile(srcJar, destJar);
             return null;
         });
+    }
+
+    private void weave(File inputFile, File outputFile) {
+        try {
+            FileInputStream is = new FileInputStream(inputFile);
+            ClassReader cr = new ClassReader(is);
+            ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+            ClassVisitor adapter = new CallClassAdapter(cw,logger);
+            cr.accept(adapter, ClassReader.EXPAND_FRAMES);
+            FileOutputStream fos = new FileOutputStream(outputFile);
+            fos.write(cw.toByteArray());
+            fos.flush();
+            fos.close();
+            is.close();
+        } catch (IOException e) {
+            logger.error("GeniusTransform--weave_exception");
+            e.printStackTrace();
+        }
     }
 
     /**
