@@ -12,7 +12,7 @@ public class CallMethodAdapter extends MethodVisitor implements Opcodes {
     private Logger logger;
 
     public CallMethodAdapter(MethodVisitor methodVisitor,Logger logger) {
-        super(Opcodes.ASM5, methodVisitor);
+        super(Opcodes.ASM4, methodVisitor);
         this.logger = logger;
     }
 
@@ -21,7 +21,7 @@ public class CallMethodAdapter extends MethodVisitor implements Opcodes {
         logger.error("GeniusTransform--MethodInsn");
         if (opcode == Opcodes.INVOKEVIRTUAL && "setContentView".equals(name)){
 //            mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "androidx/appcompat/app/AppCompatActivity", "onCreate", "(Landroid/os/Bundle;)V", false);
-            logger.error("GeniusTransform--in_MethodInsn");
+            logger.error("GeniusTransform--in_MethodInsn11");
 
             mv.visitLdcInsn("hook_it");
             mv.visitLdcInsn("beforeSetContentView......");
@@ -30,6 +30,7 @@ public class CallMethodAdapter extends MethodVisitor implements Opcodes {
         }
 
         if (opcode == Opcodes.RETURN){
+            logger.error("GeniusTransform--in_MethodInsn22");
             mv.visitLdcInsn("hook_it");
             mv.visitLdcInsn("afterSetContentView......");
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, "android/util/Log", "e", "(Ljava/lang/String;Ljava/lang/String;)I", false);
@@ -37,5 +38,15 @@ public class CallMethodAdapter extends MethodVisitor implements Opcodes {
         }
 
         super.visitMethodInsn(opcode, owner, name, desc, itf);
+    }
+
+    @Override
+    public void visitCode() {
+        logger.error("GeniusTransform--visitCode");
+        mv.visitLdcInsn("hook_it");
+        mv.visitLdcInsn("beforeSetContentView......");
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "android/util/Log", "e", "(Ljava/lang/String;Ljava/lang/String;)I", false);
+        mv.visitInsn(Opcodes.POP);
+        super.visitCode();
     }
 }

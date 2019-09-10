@@ -13,7 +13,7 @@ public class CallClassAdapter extends ClassVisitor{
     private Logger logger;
 
     public CallClassAdapter(ClassVisitor classVisitor,Logger logger) {
-        super(Opcodes.ASM5, classVisitor);
+        super(Opcodes.ASM4, classVisitor);
         this.logger = logger;
     }
 
