@@ -42,7 +42,7 @@ public class GeniusTransform extends Transform {
     private final Logger logger;
 
 
-    public GeniusTransform(Project project){
+    public GeniusTransform(Project project) {
         mProject = project;
         this.logger = project.getLogger();
         this.waitableExecutor = WaitableExecutor.useGlobalSharedThreadPool();
@@ -60,6 +60,7 @@ public class GeniusTransform extends Transform {
 
     /**
      * 限定当前transform处理的范围
+     *
      * @return
      */
     @Override
@@ -73,7 +74,6 @@ public class GeniusTransform extends Transform {
 
     @Override
     public void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
-        long startTime = System.currentTimeMillis();
         TransformOutputProvider outputProvider = transformInvocation.getOutputProvider();
         Collection<TransformInput> inputs = transformInvocation.getInputs();
         boolean isIncremental = transformInvocation.isIncremental();
@@ -115,8 +115,47 @@ public class GeniusTransform extends Transform {
                         directoryInput.getContentTypes(), directoryInput.getScopes(),
                         Format.DIRECTORY);
 //
-                logger.error("GeniusTransform--transformDir");
-                transformDir(directoryInput.getFile(), dest);
+                if(isIncremental) {
+                    String srcDirPath = directoryInput.getFile().getAbsolutePath();
+                    String destDirPath = dest.getAbsolutePath();
+                    Map<File, Status> fileStatusMap = directoryInput.getChangedFiles();
+                    for (Map.Entry<File, Status> changedFile : fileStatusMap.entrySet()) {
+                        Status status = changedFile.getValue();
+                        File inputFile = changedFile.getKey();
+                        String destFilePath = inputFile.getAbsolutePath().replace(srcDirPath, destDirPath);
+                        File destFile = new File(destFilePath);
+                        switch (status) {
+                            case NOTCHANGED:
+                                break;
+                            case REMOVED:
+                                if(destFile.exists()) {
+                                    //noinspection ResultOfMethodCallIgnored
+                                    destFile.delete();
+                                }
+                                break;
+                            case ADDED:
+                            case CHANGED:
+                                try {
+                                    FileUtils.touch(destFile);
+                                    logger.error("GeniusTransform--before_contain");
+                                    if (destFilePath.contains("MainActivity")){
+                                        logger.error("GeniusTransform--is_contain");
+                                        weave(inputFile);
+                                    }else {
+                                        FileUtils.copyFile(directoryInput.getFile(), dest);
+                                    }
+                                } catch (IOException e) {
+                                    //maybe mkdirs fail for some strange reason, try again.
+                                    Files.createParentDirs(destFile);
+                                }
+                                break;
+                        }
+                    }
+                } else {
+                    logger.error("GeniusTransform--transformDir");
+                    transformDir(directoryInput.getFile(), dest);
+                }
+
             }
 
         }
@@ -129,7 +168,6 @@ public class GeniusTransform extends Transform {
 
         if (inputDir.isDirectory()) {
             for (final File file : com.android.utils.FileUtils.getAllFiles(inputDir)) {
-//                waitableExecutor.execute(() -> {
                 String filePath = file.getAbsolutePath();
                 if (filePath.contains("MainActivity")) {
                     logger.error("GeniusTransform--MainActivity:" + filePath);
@@ -141,8 +179,6 @@ public class GeniusTransform extends Transform {
                     logger.error("GeniusTransform--else:" + filePath);
                     FileUtils.copyDirectory(inputDir, outputDir);
                 }
-//                    return null;
-//                });
             }
         }
     }
@@ -156,14 +192,14 @@ public class GeniusTransform extends Transform {
 
     private void weave(File inputFile) {
         try {
-            logger.error("GeniusTransform--wInputFile:"+inputFile.getAbsolutePath());
+            logger.error("GeniusTransform--wInputFile:" + inputFile.getAbsolutePath());
             FileInputStream is = new FileInputStream(inputFile);
             ClassReader cr = new ClassReader(is);
             ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-            ClassVisitor adapter = new CallClassAdapter(cw,logger);
+            ClassVisitor adapter = new CallClassAdapter(cw, logger);
             cr.accept(adapter, ClassReader.EXPAND_FRAMES);
-            String outPutPath = inputFile.getParentFile().getAbsoluteFile()+File.separator+inputFile.getName();
-            logger.error("GeniusTransform--wOutPutFile:"+outPutPath);
+            String outPutPath = inputFile.getParentFile().getAbsoluteFile() + File.separator + inputFile.getName();
+            logger.error("GeniusTransform--wOutPutFile:" + outPutPath);
             FileOutputStream fos = new FileOutputStream(outPutPath);
             fos.write(cw.toByteArray());
             fos.flush();
@@ -178,6 +214,7 @@ public class GeniusTransform extends Transform {
 
     /**
      * 是否增量
+     *
      * @return
      */
     @Override

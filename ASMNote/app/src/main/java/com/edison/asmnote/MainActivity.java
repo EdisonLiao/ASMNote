@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -15,7 +16,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void hookLoggg(){
-
+        TextView tv = findViewById(R.id.tv_hello);
+        tv.setText("Hello Kitty");
     }
 
 }

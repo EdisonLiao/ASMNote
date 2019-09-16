@@ -16,6 +16,14 @@ public class CallMethodAdapter extends MethodVisitor implements Opcodes {
         this.logger = logger;
     }
 
+    /**
+     * 访问每一行代码
+     * @param opcode
+     * @param owner
+     * @param name
+     * @param desc
+     * @param itf
+     */
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
         logger.error("GeniusTransform--MethodInsn");
@@ -40,6 +48,9 @@ public class CallMethodAdapter extends MethodVisitor implements Opcodes {
         super.visitMethodInsn(opcode, owner, name, desc, itf);
     }
 
+    /**
+     * 方法开始时
+     */
     @Override
     public void visitCode() {
         logger.error("GeniusTransform--visitCode");
@@ -49,4 +60,15 @@ public class CallMethodAdapter extends MethodVisitor implements Opcodes {
         mv.visitInsn(Opcodes.POP);
         super.visitCode();
     }
+
+    /**
+     * 方法结束时
+     */
+    @Override
+    public void visitEnd() {
+        super.visitEnd();
+    }
+
+
+
 }

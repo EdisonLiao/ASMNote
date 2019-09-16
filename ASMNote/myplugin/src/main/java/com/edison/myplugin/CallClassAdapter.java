@@ -25,7 +25,7 @@ public class CallClassAdapter extends ClassVisitor{
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         logger.error("GeniusTransform--before_onCreate");
-        if ("onCreate".equals(name) && cv != null){
+        if ("hookLoggg".equals(name) && cv != null){
             logger.error("GeniusTransform--is_onCreate");
             MethodVisitor mv = cv.visitMethod(access, name, desc, signature, exceptions);
             return new CallMethodAdapter(mv,logger);
