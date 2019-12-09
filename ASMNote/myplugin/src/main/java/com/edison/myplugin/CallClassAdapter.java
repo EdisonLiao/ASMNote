@@ -37,4 +37,9 @@ public class CallClassAdapter extends ClassVisitor{
 
         return null;
     }
+
+    @Override
+    public void visitInnerClass(String s, String s1, String s2, int i) {
+        super.visitInnerClass(s, s1, s2, i);
+    }
 }
